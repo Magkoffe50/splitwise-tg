@@ -4,27 +4,59 @@ require('dotenv').config();
 import { DEFAULT_PORT } from './constants';
 
 import express, { NextFunction, Request, Response } from 'express';
-import http from 'http';
-// import bodyParser from "body-parser";
+import bodyParser from 'body-parser';
+import axios from 'axios';
+import getTgApi from './controller/helpers/getTgApi';
+import router from './router';
 // import cookieParser from "cookie-parser";
 // import cors from "cors";
 // import mongoose from "mongoose";
-// import router from "./router";
 
 const app = express();
-// app.use(bodyParser.json());
+app.use(bodyParser.json());
 // app.use(cookieParser());
 
-// app.use((req: Request, res: Response, next: NextFunction) => {
-//   next();
-// });
+app.use((req: Request, res: Response, next: NextFunction) => {
+  next();
+});
 
 // mongoose.Promise = Promise;
 // mongoose.connect(process.env.MONGO_URL);
 // mongoose.connection.on("error", (error: Error) => console.log(error));
 
-// app.use("/api", router());
+const { api, uri, webhookUrl } = getTgApi();
 
-app.listen(process.env.PORT || DEFAULT_PORT, () => {
+const init = async () => {
+  try {
+    const res = await axios.get(`${api}/setWebhook?url=${webhookUrl}`);
+    console.log(res.data);
+
+    await axios.post(`${api}/setMyCommands`, {
+      commands: [
+        {
+          command: 'start',
+          description: 'Start using bot',
+        },
+        {
+          command: 'help',
+          description: 'Display help',
+        },
+        {
+          command: 'menu',
+          description: 'Display menu',
+        },
+      ],
+      language_code: 'en',
+    });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+app.use(uri, router());
+
+app.listen(process.env.PORT || DEFAULT_PORT, async () => {
   console.log(`Server started on port = ${process.env.PORT || DEFAULT_PORT}`);
+
+  await init();
 });
